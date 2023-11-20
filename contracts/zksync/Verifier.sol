@@ -3,6 +3,24 @@
 pragma solidity 0.8.20;
 
 import "./interfaces/IVerifier.sol";
+import "./libraries/PairingsBn254.sol";
+
+uint256 constant STATE_WIDTH = 4;
+uint256 constant NUM_G2_ELS = 2;
+
+struct VerificationKey {
+    uint256 domain_size;
+    uint256 num_inputs;
+    PairingsBn254.Fr omega;
+    PairingsBn254.G1Point[2] gate_selectors_commitments;
+    PairingsBn254.G1Point[8] gate_setup_commitments;
+    PairingsBn254.G1Point[STATE_WIDTH] permutation_commitments;
+    PairingsBn254.G1Point lookup_selector_commitment;
+    PairingsBn254.G1Point[4] lookup_tables_commitments;
+    PairingsBn254.G1Point lookup_table_type_commitment;
+    PairingsBn254.Fr[STATE_WIDTH - 1] non_residues;
+    PairingsBn254.G2Point[NUM_G2_ELS] g2_elements;
+}
 
 /* solhint-disable max-line-length */
 /// @author Matter Labs
@@ -268,6 +286,122 @@ contract Verifier is IVerifier {
             vkHash := keccak256(start, length)
         }
     }
+    
+    function get_verification_key() public pure returns (VerificationKey memory vk) {
+        vk.num_inputs = 1;
+        vk.domain_size = 0x1000000;
+        vk.omega = PairingsBn254.new_fr(0x1951441010b2b95a6e47a6075066a50a036f5ba978c050f2821df86636c0facb);
+        // coefficients
+        vk.gate_setup_commitments[0] = PairingsBn254.new_g1(
+            0x054b0ed7dd15637829a8311ff09e912292bb5009fa5293632b7f590f63fbb8e4,
+            0x0c1b49eba175d4b85903f6021a2592945fb414ef82e57d8e8b18e769b79913a0
+        );
+        vk.gate_setup_commitments[1] = PairingsBn254.new_g1(
+            0x165a927da6a4645835e465eeba4c60dca3aa2ca56b49e0a1b6170e3150fbef81,
+            0x0aacc3d0830be4bf9bbca3b0329f9519e3127d13a126a4021f884c322f96e223
+        );
+        vk.gate_setup_commitments[2] = PairingsBn254.new_g1(
+            0x1591549a8e5376ef07b216264bf5916f608fb49777750ba7f61406616da2c444,
+            0x12d22c1cd67d82f57f14dc13e2d8923039d06300ff49df7d999bcaf64fdfd5d7
+        );
+        vk.gate_setup_commitments[3] = PairingsBn254.new_g1(
+            0x215ff6c049d73d5b8bb1a02ce540d68490ef1fb52891e57d6f4b365bdf5729ed,
+            0x264337a5471c7627dc3e46b655a2db5350bf3f48be739d61a54643116442be93
+        );
+        vk.gate_setup_commitments[4] = PairingsBn254.new_g1(
+            0x072a1da16e0ccdc16e238b951e4179168d498336070d927a86f08192322012c9,
+            0x2a7e401a43d51eb4fbbef6b3b9e1b3d13bc2fc670e1f8f3307e1dc3dbe97ed4c
+        );
+        vk.gate_setup_commitments[5] = PairingsBn254.new_g1(
+            0x09b71be2e8a45dcbe7654cf369c4f1f2e7eab4b97869a469fb7a149d989f7226,
+            0x197e1e2cefbd4f99558b89ca875e01fec0f14f05e5128bd869c87d6bf2f307fa
+        );
+        vk.gate_setup_commitments[6] = PairingsBn254.new_g1(
+            0x21708e89d408cd584078ff0aa9132fc8d5c1635502beb267db870e86a07a08e2,
+            0x2a9b239cf563fdc1bd61485d50183672304d0a72e2bf82298de6e36255705ba9
+        );
+        vk.gate_setup_commitments[7] = PairingsBn254.new_g1(
+            0x28f1fb0891ede6b5ee5754b3ff4ed95ff69712a8af36b344d86681f8299a41ac,
+            0x191376f72d21d1f307d30a856e015f1635a5684cec2f5bba906954e26551e9cb
+        );
+        // gate selectors
+        vk.gate_selectors_commitments[0] = PairingsBn254.new_g1(
+            0x116738c4b76005b372f69974b9102c1a93135b691ac998984a5080e849e3f027,
+            0x1875c1058b050df9f30326c0c946151e67f88ecf47edec3df9abc72445707dcf
+        );
+        vk.gate_selectors_commitments[1] = PairingsBn254.new_g1(
+            0x2d5c06d0c8aa6a3520b8351f82341affcbb1a0bf27bceb9bab175e3e1d38cf47,
+            0x0ff8d923a0374308147f6dd4fc513f6d0640f5df699f4836825ef460df3f8d6a
+        );
+        // permutation
+        vk.permutation_commitments[0] = PairingsBn254.new_g1(
+            0x05b56e128c5c961e289905f3e311d44bf3768e7ecbc34cb299ab512d95a67072,
+            0x0033321debc3d87f48ffe67bd408c0078b50586003904bc440529c6d635aeef7
+        );
+        vk.permutation_commitments[1] = PairingsBn254.new_g1(
+            0x264be88fe8356e4bc0b37ea534d1956630c6976410a38c703e8702d5d98584be,
+            0x1ce1186bd2681359c38a1fc70fd14e522f762692f8f9ed14ccebd95c5fdaf9de
+        );
+        vk.permutation_commitments[2] = PairingsBn254.new_g1(
+            0x18cb10d4373dc6eff5507b9572728fc7c1b0dc38b021eaad8b429d710ea419e5,
+            0x0d58bb86064f7f28e7e9f632f0dcfd630f792fa3939682b4e14db6a1ee198432
+        );
+        vk.permutation_commitments[3] = PairingsBn254.new_g1(
+            0x1f724cfe2fc22cdeb8cc323338759ac083d2a94631d5f48db74988862a404ee3,
+            0x2e0d1978ef73d1446d6d47269b57fe29842154788c18f90e7e052e5625ca7bf6
+        );
+        // lookup table commitments
+        vk.lookup_selector_commitment = PairingsBn254.new_g1(
+            0x2c513ed74d9d57a5ec901e074032741036353a2c4513422e96e7b53b302d765b,
+            0x04dd964427e430f16004076d708c0cb21e225056cc1d57418cfbd3d472981468
+        );
+        vk.lookup_tables_commitments[0] = PairingsBn254.new_g1(
+            0x1ea83e5e65c6f8068f4677e2911678cf329b28259642a32db1f14b8347828aac,
+            0x1d22bc884a2da4962a893ba8de13f57aaeb785ed52c5e686994839cab8f7475d
+        );
+        vk.lookup_tables_commitments[1] = PairingsBn254.new_g1(
+            0x0b2e7212d0d9cff26d0bdf3d79b2cac029a25dfeb1cafdf49e2349d7db348d89,
+            0x1301f9b252419ea240eb67fda720ca0b16d92364027285f95e9b1349490fa283
+        );
+        vk.lookup_tables_commitments[2] = PairingsBn254.new_g1(
+            0x02f7b99fdfa5b418548c2d777785820e02383cfc87e7085e280a375a358153bf,
+            0x09d004fe08dc4d19c382df36fad22ef676185663543703e6a4b40203e50fd8a6
+        );
+        vk.lookup_tables_commitments[3] = PairingsBn254.new_g1(
+            0x1641f5d312e6f62720b1e6cd1d1be5bc0e69d10d20a12dc97ff04e2107e10ccc,
+            0x277f435d376acc3261ef9d5748e6705086214daf46d04edc80fbd657f8d9e73d
+        );
+        vk.lookup_table_type_commitment = PairingsBn254.new_g1(
+            0x1b5f1cfddd6713cf25d9e6850a1b3fe80d6ef7fe2c67248f25362d5f9b31893c,
+            0x0945076de03a0d240067e5f02b8fc11eaa589df3343542576eb59fdb3ecb57e0
+        );
+        // non residues
+        vk.non_residues[0] = PairingsBn254.new_fr(0x0000000000000000000000000000000000000000000000000000000000000005);
+        vk.non_residues[1] = PairingsBn254.new_fr(0x0000000000000000000000000000000000000000000000000000000000000007);
+        vk.non_residues[2] = PairingsBn254.new_fr(0x000000000000000000000000000000000000000000000000000000000000000a);
+
+        // g2 elements
+        vk.g2_elements[0] = PairingsBn254.new_g2(
+            [
+                0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2,
+                0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed
+            ],
+            [
+                0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b,
+                0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa
+            ]
+        );
+        vk.g2_elements[1] = PairingsBn254.new_g2(
+            [
+                0x260e01b251f6f1c7e7ff4e580791dee8ea51d87a358e038b4efe30fac09383c1,
+                0x0118c4d5b837bcc2bc89b5b398b5974e9f5944073b32078b7e231fec938883b0
+            ],
+            [
+                0x04fc6369f7110fe3d25156c1bb9a72859cf2a04641f99ba4ee413c80da6a5fe4,
+                0x22febda3c0c0632a56475b4214e5615e11e6dd3f96e6cea2854a87d4dacc5e55
+            ]
+        );
+    }
 
     /// @notice Load verification keys to memory in runtime.
     /// @dev The constants are loaded into memory in a specific layout declared in the constants starting from
@@ -383,7 +517,7 @@ contract Verifier is IVerifier {
                 mstore(0x60, value)
                 mstore(0x80, power)
                 mstore(0xa0, R_MOD)
-                if iszero(staticcall(gas(), 0x25, 0, 0xc0, 0x00, 0x20)) {
+                if iszero(staticcall(gas(), 0x5, 0, 0xc0, 0x00, 0x20)) {
                     revertWithMessage(24, "modexp precompile failed")
                 }
                 res := mload(0x00)

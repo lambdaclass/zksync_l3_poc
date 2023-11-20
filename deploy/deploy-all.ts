@@ -230,7 +230,7 @@ async function initializeL3BaseContracts(l3BaseContracts: L3BaseContracts, walle
 export default async function () {
     const wallet = getWallet();
     const deployer = new Deployer(hre, wallet);
-    const verifier = await deployContract(deployer, wallet, "Verifier");
-    const l3BaseContracts = await deployL3BaseContracts(deployer, wallet, verifier.address);
+    const verifierAddress = "0xa264Dd5AFe03dC84521F2b6e30e9E289bAc6aCd9";
+    const l3BaseContracts = await deployL3BaseContracts(deployer, wallet, verifierAddress);
     await initializeL3BaseContracts(l3BaseContracts, wallet);
 }

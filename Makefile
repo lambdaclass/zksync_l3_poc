@@ -8,7 +8,7 @@ setup: setup-node
 compile:
 	yarn hardhat compile
 
-deploy:
+deploy: deploy-verifier
 	yarn hardhat deploy-zksync --script deploy/deploy-all.ts
 
 # Node Commands
@@ -22,3 +22,6 @@ update-node:
 
 run-node:
 	era_test_node --show-calls=all --resolve-hashes run
+
+deploy-verifier:
+	yarn hardhat deploy-zksync --script deploy/deploy-verifier.ts
