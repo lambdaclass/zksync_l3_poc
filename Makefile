@@ -8,20 +8,43 @@ setup: setup-node
 compile:
 	yarn hardhat compile
 
-deploy: deploy-verifier
-	yarn hardhat deploy-zksync --script deploy/deploy-all.ts
+init:
+	yarn hardhat deploy-zksync --script deploy/init.ts
+
+clean: clean-hardhat clean-node-modules clean-era-test-node
 
 # Node Commands
 
-setup-node:
-	[ -d "./era-test-node" ] || git clone --depth 1 git@github.com:matter-labs/era-test-node.git && \
-	cd era-test-node && cargo install --path .
+download-node:
+	[ -d "./era-test-node" ] || git clone git@github.com:matter-labs/era-test-node.git
+
+build-node:
+	cd era-test-node && make rust-build && make build-contracts
+
+setup-node: download-node build-node
 
 update-node:
-	cd era-test-node && git pull && cargo install --path .
+	cd era-test-node && git pull && make rust-build
 
 run-node:
-	era_test_node --show-calls=all --resolve-hashes run
+	./era-test-node/target/release/era_test_node --show-calls=all --resolve-hashes --show-gas-details=all run
 
-deploy-verifier:
-	yarn hardhat deploy-zksync --script deploy/deploy-verifier.ts
+run-node-light:
+	./era-test-node/target/release/era_test_node run
+
+# Cleanzine Commands
+
+clean-hardhat:
+	yarn hardhat clean && \
+	rm -rf cache-zk
+
+clean-node-modules:
+	rm -rf node_modules
+
+clean-era-test-node:
+	rm -rf era-test-node
+
+# L3 Command
+
+fund:
+	yarn hardhat deploy-zksync --script deploy/init-rich-accounts.ts
