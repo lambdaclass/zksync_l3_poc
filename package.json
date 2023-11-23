@@ -5,14 +5,12 @@
   "author": "Matter Labs",
   "license": "MIT",
   "repository": "https://github.com/matter-labs/zksync-hardhat-template.git",
-  "scripts": {
-    "deploy": "yarn hardhat deploy-zksync --script deploy.ts",
-    "interact": "yarn hardhat deploy-zksync --script interact.ts",
-    "test": "yarn hardhat test --network hardhat"
-  },
   "devDependencies": {
+    "@matterlabs/hardhat-zksync-deploy": "^0.6.5",
+    "@matterlabs/hardhat-zksync-node": "0.0.1-beta.4",
+    "@matterlabs/hardhat-zksync-solc": "^0.4.2",
+    "@matterlabs/hardhat-zksync-verify": "^0.1.8",
     "@matterlabs/eslint-config-typescript": "^1.1.2",
-    "@matterlabs/hardhat-zksync-zksync2js": "^0.0.1-beta.0",
     "@matterlabs/prettier-config": "^1.0.3",
     "@matterlabs/zksync-contracts": "^0.6.1",
     "@nomiclabs/hardhat-ethers": "^2.0.0",
@@ -64,12 +62,11 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
-    "@matterlabs/hardhat-zksync-deploy": "^1.0.0",
-    "@matterlabs/hardhat-zksync-node": "^0.0.1-beta.1",
-    "@matterlabs/hardhat-zksync-solc": "^1.0.0",
-    "@matterlabs/hardhat-zksync-verify": "^1.0.0",
-    "@typechain/ethers-v6": "^0.5.1",
-    "ethers": "^6.8.1",
-    "zksync2-js": "^0.2.2"
+    "@matterlabs/hardhat-zksync-deploy": "^0.6.5",
+    "@matterlabs/hardhat-zksync-node": "0.0.1-beta.4",
+    "@matterlabs/hardhat-zksync-solc": "^0.4.2",
+    "@matterlabs/hardhat-zksync-verify": "^0.1.8",
+    "@matterlabs/zksync-contracts": "^0.6.1",
+    "zksync-web3": "^0.16.0"
   }
 }
