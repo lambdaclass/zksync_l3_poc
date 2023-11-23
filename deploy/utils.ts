@@ -1,11 +1,12 @@
-import { Fragment, FunctionFragment, Interface, ethers } from "ethers";
-import { Contract, Wallet } from "zksync2-js";
+import { ethers } from "ethers";
 import * as hre from "hardhat";
 import fs from "fs";
-import { hashBytecode } from "zksync2-js/build/src/utils";
-import { Address } from "zksync2-js/build/src/types";
+import { checkResultErrors, EventFragment, Fragment, FunctionFragment, Indexed, Interface, JsonFragment, LogDescription, ParamType, Result } from "@ethersproject/abi";
+import { Address } from "zksync-web3/build/src/types";
+import { Contract } from "zksync-web3";
+import { hashBytecode } from "./dev-utils";
 
-export const CREATE2_PREFIX = ethers.solidityPackedKeccak256(["string"], ["zksyncCreate2"]);
+export const CREATE2_PREFIX = ethers.utils.solidityKeccak256(["string"], ["zksyncCreate2"]);
 
 export function diamondCut(facetCuts: FacetCut[], initAddress: string, initCalldata: string): DiamondCut {
     return {
@@ -18,25 +19,25 @@ export function diamondCut(facetCuts: FacetCut[], initAddress: string, initCalld
 export async function  oldInitialProxyDiamondCut(ownerAddress: Address, adminFacet: Contract, gettersFacet: Contract, mailboxFacet: Contract, executorFacet: Contract, allowList: Contract, diamondInit: Contract) {
     let facetCuts = [
         {
-            facet: await adminFacet.getAddress(),
+            facet: adminFacet.address,
             selectors: getAllSelectors(adminFacet.interface),
             action: 0,
             isFreezable: false,
         },
         {
-            facet: await gettersFacet.getAddress(),
+            facet: gettersFacet.address,
             selectors: getAllSelectors(gettersFacet.interface),
             action: 0,
             isFreezable: false,
         },
         {
-            facet: await mailboxFacet.getAddress(),
+            facet: mailboxFacet.address,
             selectors: getAllSelectors(mailboxFacet.interface),
             action: 0,
             isFreezable: true,
         },
         {
-            facet: await executorFacet.getAddress(),
+            facet: executorFacet.address,
             selectors: getAllSelectors(executorFacet.interface),
             action: 0,
             isFreezable: true,
@@ -47,24 +48,24 @@ export async function  oldInitialProxyDiamondCut(ownerAddress: Address, adminFac
             verifier: "0xD9BeaC58741F9FEE8583A31E4f7BD93BE729eA9A",
             governor: ownerAddress,
             admin: ownerAddress,
-            genesisBatchHash: ethers.ZeroHash,
-            genesisIndexRepeatedStorageChanges: ethers.ZeroAddress,
-            genesisBatchCommitment: ethers.ZeroHash,
-            allowList: await allowList.getAddress(),
+            genesisBatchHash: ethers.constants.HashZero,
+            genesisIndexRepeatedStorageChanges: ethers.constants.AddressZero,
+            genesisBatchCommitment: ethers.constants.HashZero,
+            allowList: allowList.address,
             verifierParams: {
                 recursionNodeLevelVkHash: "0x1186ec268d49f1905f8d9c1e9d39fc33e98c74f91d91a21b8f7ef78bd09a8db8",
                 recursionLeafLevelVkHash: "0x101e08b00193e529145ee09823378ef51a3bc8966504064f1f6ba3f1ba863210",
                 recursionCircuitsSetVksHash: "0x142a364ef2073132eaf07aa7f3d8495065be5b92a2dc14fda09b4216affed9c0",
             },
             zkPorterIsAvailable: false,
-            l2BootloaderBytecodeHash: ethers.hexlify(hashBytecode(readBlockBootloaderBytecode())),
-            l2DefaultAccountBytecodeHash: ethers.hexlify(hashBytecode(readSystemContractsBytecode('DefaultAccount'))),
+            l2BootloaderBytecodeHash: ethers.utils.hexlify(hashBytecode(readBlockBootloaderBytecode())),
+            l2DefaultAccountBytecodeHash: ethers.utils.hexlify(hashBytecode(readSystemContractsBytecode('DefaultAccount'))),
             priorityTxMaxGasLimit: 80_000_000,
         },
     ]);
     let initialDiamondCut = {
         facetCuts: facetCuts,
-        initAddress: await diamondInit.getAddress(),
+        initAddress: diamondInit.address,
         initCalldata: diamondInitCalldata,
     };
     return initialDiamondCut;
@@ -100,18 +101,18 @@ export async function initialProxyDiamondCut(ownerAddress: Address, adminFacet: 
         genesisBatchHash,
         genesisIndexRepeatedStorageChanges,
         genesisBatchCommitment,
-        allowList: await allowList.getAddress(),
+        allowList: allowList.address,
         verifierParams,
         zkPorterIsAvailable: false,
-        l2BootloaderBytecodeHash: ethers.hexlify(hashBytecode(readBlockBootloaderBytecode())),
-        l2DefaultAccountBytecodeHash: ethers.hexlify(hashBytecode(readSystemContractsBytecode('DefaultAccount'))),
+        l2BootloaderBytecodeHash: ethers.utils.hexlify(hashBytecode(readBlockBootloaderBytecode())),
+        l2DefaultAccountBytecodeHash: ethers.utils.hexlify(hashBytecode(readSystemContractsBytecode('DefaultAccount'))),
         priorityTxMaxGasLimit,
         initialProtocolVersion,
       },
     ]);
 
     // @ts-ignore
-    return diamondCut(facetCuts, await diamondInit.getAddress(), diamondInitCalldata);
+    return diamondCut(facetCuts, diamondInit.address, diamondInitCalldata);
 }
 
 export enum Action {
@@ -134,13 +135,11 @@ export interface DiamondCut {
 }
 
 export function getAllSelectors(contractInterface: Interface) {
-    return contractInterface
-            .fragments
-            .filter((fragment) => Fragment.isFunction(fragment))
-            .map((fragment) => {
-                let f = fragment as FunctionFragment;
-                return f.selector
-            });
+    return Object.keys(contractInterface.functions)
+        .filter((signature) => {
+            return signature !== "getName()";
+        })
+        .map((signature) => contractInterface.getSighash(signature));
 }
 
 export function facetCut(address: string, contract: Interface, action: Action, isFreezable: boolean): FacetCut {
@@ -158,10 +157,10 @@ export async function getCurrentFacetCutsForAdd(
     mailboxFacet: Contract,
     executorFacet: Contract
 ) {
-    const adminFacetAddress = await adminFacet.getAddress();
-    const gettersFacetAddress = await gettersFacet.getAddress();
-    const mailboxFacetAddress = await mailboxFacet.getAddress();
-    const executorFacetAddress = await executorFacet.getAddress();
+    const adminFacetAddress = adminFacet.address;
+    const gettersFacetAddress = gettersFacet.address;
+    const mailboxFacetAddress = mailboxFacet.address;
+    const executorFacetAddress = executorFacet.address;
 
     const facetsCuts = {};
     // Some facets should always be available regardless of freezing: upgradability system, getters, etc.

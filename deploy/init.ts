@@ -1,12 +1,11 @@
 import chalk from 'chalk';
 import fs from 'fs';
 import * as hre from 'hardhat';
-import { Contract, ContractFactory, Provider, Wallet } from 'zksync2-js';
 import { ethers } from 'ethers';
 import dotenv from 'dotenv';
 import { CREATE2_PREFIX, initialProxyDiamondCut, oldInitialProxyDiamondCut } from './utils';
-import { DeploymentType } from 'zksync2-js/build/src/types';
-// import { create2Address, hashBytecode } from 'zksync2-js/build/src/utils';
+import { Contract, ContractFactory, Provider, Wallet } from 'zksync-web3';
+import { DeploymentType } from 'zksync-web3/build/src/types';
 
 dotenv.config();
 
@@ -85,7 +84,7 @@ export async function deployBaseLayerContracts(wallet: Wallet): Promise<void> {
     await deployContract("create2", wallet, "Multicall3");
     await deployContract("create2", wallet, "DiamondUpgradeInit6");
     await deployContract("create2", wallet, "DefaultUpgrade");
-    await deployContract("create2", wallet, "Governance", [ownerAddress, ethers.ZeroAddress, 0]);
+    await deployContract("create2", wallet, "Governance", [ownerAddress, ethers.constants.AddressZero, 0]);
     let allowListContract = await deployContract("create2", wallet, "AllowList", [ownerAddress]);
     
     // Deploy ZKSyncContract
@@ -112,16 +111,30 @@ export async function deployBaseLayerContracts(wallet: Wallet): Promise<void> {
     // FIXME: 
     // The "2" should be an env variable.
     // Where is the validatorAddress?
-    let validatorAddress = ethers.ZeroAddress;
+    let validatorAddress = ethers.constants.AddressZero;
     await deployContract("create2", wallet, "ValidatorTimelock", [ownerAddress, diamondProxyContract.address, 2, validatorAddress]);
+}
+
+export const verifyContract = async (data: {
+    address: string,
+    contract: string,
+    constructorArguments: string,
+    bytecode: string
+  }) => {
+    const verificationRequestId: number = await hre.run("verify:verify", {
+      ...data,
+      noCompile: true,
+    });
+    return verificationRequestId;
 }
 
 export async function deployContract(deploymentType: DeploymentType, wallet: Wallet, contractName: string, args: any[] = [], overrides: Object = {}): Promise<Contract> {
     const artifact = await hre.artifacts.readArtifact(contractName);
     const factory = new ContractFactory(artifact.abi, artifact.bytecode, wallet, deploymentType);
     const contract = (await factory.deploy(...args, {
-        customData: { salt: ethers.keccak256(ethers.toUtf8Bytes("LambdaClass")) },
+        customData: { salt: ethers.utils.keccak256(ethers.utils.toUtf8Bytes("LambdaClass")) },
     })) as Contract;
-    console.log(`${success('✔')} Deployed ${contractName} at address: ${await contract.getAddress()}`);
+    console.log(`${success('✔')} Deployed ${contractName} at address: ${contract.address}`);
+
     return contract;
 }
