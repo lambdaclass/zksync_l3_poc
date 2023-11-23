@@ -3,7 +3,6 @@
 pragma solidity 0.8.20;
 
 import "./interfaces/IVerifier.sol";
-import "./libraries/PairingsBn254.sol";
 
 /* solhint-disable max-line-length */
 /// @author Matter Labs
