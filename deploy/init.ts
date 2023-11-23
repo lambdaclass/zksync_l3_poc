@@ -78,50 +78,50 @@ export function clean(path: string) {
 export async function deployBaseLayerContracts(wallet: Wallet): Promise<void> {
     const ownerAddress = wallet.address;
 
-    await deployContract("create", wallet, 'TestnetERC20Token', ['Test Token', 'TST', 18]);
+    await deployContract("create2", wallet, 'TestnetERC20Token', ['Test Token', 'TST', 18]);
 
-    await deployContract("create", wallet, 'Verifier');
+    await deployContract("create2", wallet, 'Verifier');
 
-    await deployContract("create", wallet, "Multicall3");
-    await deployContract("create", wallet, "DiamondUpgradeInit6");
-    await deployContract("create", wallet, "DefaultUpgrade");
-    await deployContract("create", wallet, "Governance", [ownerAddress, ethers.ZeroAddress, 0]);
-    let allowListContract = await deployContract("create", wallet, "AllowList", [ownerAddress]);
+    await deployContract("create2", wallet, "Multicall3");
+    await deployContract("create2", wallet, "DiamondUpgradeInit6");
+    await deployContract("create2", wallet, "DefaultUpgrade");
+    await deployContract("create2", wallet, "Governance", [ownerAddress, ethers.ZeroAddress, 0]);
+    let allowListContract = await deployContract("create2", wallet, "AllowList", [ownerAddress]);
     
     // Deploy ZKSyncContract
-    let mailboxFacetContract = await deployContract("create", wallet, "MailboxFacet", []);
-    let executorFacetContract = await deployContract("create", wallet, "ExecutorFacet", []);
-    let adminFacetContract = await deployContract("create", wallet, "AdminFacet", []);
-    let getterFacetContract = await deployContract("create", wallet, "GettersFacet", []);
-    let diamondInitContract = await deployContract("create", wallet, "DiamondInit", []);
+    let mailboxFacetContract = await deployContract("create2", wallet, "MailboxFacet", []);
+    let executorFacetContract = await deployContract("create2", wallet, "ExecutorFacet", []);
+    let adminFacetContract = await deployContract("create2", wallet, "AdminFacet", []);
+    let getterFacetContract = await deployContract("create2", wallet, "GettersFacet", []);
+    let diamondInitContract = await deployContract("create2", wallet, "DiamondInit", []);
 
     // Deploy DiamondProxy
     let diamondProxyConstructorCalldata = await initialProxyDiamondCut(ownerAddress, adminFacetContract, getterFacetContract, mailboxFacetContract, executorFacetContract, allowListContract, diamondInitContract);
     // let diamondProxyConstructorCalldata = await oldInitialProxyDiamondCut(ownerAddress, adminFacetContract, getterFacetContract, mailboxFacetContract, executorFacetContract, allowListContract, diamondInitContract);
-    let diamondProxyContract = await deployContract("create", wallet, "DiamondProxy", [260, diamondProxyConstructorCalldata]);
+    let diamondProxyContract = await deployContract("create2", wallet, "DiamondProxy", [260, diamondProxyConstructorCalldata]);
     
     // Deploy Bridges
-    let erc20BridgeImplementationContract = await deployContract("create", wallet, "L1ERC20Bridge", [diamondProxyContract.address, allowListContract.address]);
-    await deployContract("create", wallet, "TransparentUpgradeableProxy", [erc20BridgeImplementationContract.address, ownerAddress, "0x"]);
+    let erc20BridgeImplementationContract = await deployContract("create2", wallet, "L1ERC20Bridge", [diamondProxyContract.address, allowListContract.address]);
+    await deployContract("create2", wallet, "TransparentUpgradeableProxy", [erc20BridgeImplementationContract.address, ownerAddress, "0x"]);
     
     // Deploy WETH Bridges
     let l1token = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6";
-    let wethBridgeImplementationContract = await deployContract("create", wallet, "L1WethBridge", [l1token, diamondProxyContract.address, allowListContract.address]);
-    let wethBridgeProxyContract = await deployContract("create", wallet, "TransparentUpgradeableProxy", [wethBridgeImplementationContract.address, diamondProxyContract.address, "0x"]);;
+    let wethBridgeImplementationContract = await deployContract("create2", wallet, "L1WethBridge", [l1token, diamondProxyContract.address, allowListContract.address]);
+    let wethBridgeProxyContract = await deployContract("create2", wallet, "TransparentUpgradeableProxy", [wethBridgeImplementationContract.address, diamondProxyContract.address, "0x"]);;
     
     // FIXME: 
     // The "2" should be an env variable.
     // Where is the validatorAddress?
     let validatorAddress = ethers.ZeroAddress;
-    await deployContract("create", wallet, "ValidatorTimelock", [ownerAddress, diamondProxyContract.address, 2, validatorAddress]);
+    await deployContract("create2", wallet, "ValidatorTimelock", [ownerAddress, diamondProxyContract.address, 2, validatorAddress]);
 }
 
 export async function deployContract(deploymentType: DeploymentType, wallet: Wallet, contractName: string, args: any[] = [], overrides: Object = {}): Promise<Contract> {
     const artifact = await hre.artifacts.readArtifact(contractName);
     const factory = new ContractFactory(artifact.abi, artifact.bytecode, wallet, deploymentType);
-    // const contract = (await factory.deploy(...args, {
-    //     customData: { salt: ethers.keccak256(ethers.toUtf8Bytes("LambdaClass")) },
-    // })) as Contract;
+    const contract = (await factory.deploy(...args, {
+        customData: { salt: ethers.keccak256(ethers.toUtf8Bytes("LambdaClass")) },
+    })) as Contract;
     console.log(`${success('✔')} Deployed ${contractName} at address: ${await contract.getAddress()}`);
     return contract;
 }
