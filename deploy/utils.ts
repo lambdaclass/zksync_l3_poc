@@ -5,6 +5,7 @@ import { checkResultErrors, EventFragment, Fragment, FunctionFragment, Indexed, 
 import { Address } from "zksync-web3/build/src/types";
 import { Contract } from "zksync-web3";
 import { hashBytecode } from "./dev-utils";
+import { exec as _exec, spawn as _spawn } from 'child_process';
 
 export const CREATE2_PREFIX = ethers.utils.solidityKeccak256(["string"], ["zksyncCreate2"]);
 
@@ -210,4 +211,17 @@ export function readSystemContractsBytecode(fileName: string) {
         `era-test-node/src/deps/contracts/${fileName}.json`
     );
     return JSON.parse(artifact.toString()).bytecode;
+}
+
+// executes a command in a new shell
+// but pipes data to parent's stdout/stderr
+export function spawn(command: string) {
+    command = command.replace(/\n/g, ' ');
+    const child = _spawn(command, { stdio: 'inherit', shell: true });
+    return new Promise((resolve, reject) => {
+        child.on('error', reject);
+        child.on('close', (code) => {
+            code == 0 ? resolve(code) : reject(`Child process exited with code ${code}`);
+        });
+    });
 }
