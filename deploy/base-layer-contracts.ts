@@ -3,9 +3,12 @@ import fs from 'fs';
 import * as hre from 'hardhat';
 import { ethers } from 'ethers';
 import dotenv from 'dotenv';
-import { CREATE2_PREFIX, initialProxyDiamondCut, oldInitialProxyDiamondCut } from './utils';
-import { Contract, ContractFactory, Provider, Wallet } from 'zksync-web3';
+import { CREATE2_PREFIX, initialProxyDiamondCut, oldInitialProxyDiamondCut, spawn } from './utils';
+import { Contract, ContractFactory, Provider, Wallet, utils } from 'zksync-web3';
 import { DeploymentType } from 'zksync-web3/build/src/types';
+
+import * as db from './database';
+import * as dbutils from './database-utils';
 
 dotenv.config();
 
@@ -23,8 +26,6 @@ export default async function () {
     // const artifact = await hre.artifacts.readArtifact("Verifier");
     // console.log(create2Address(wallet.address, hashBytecode(artifact.bytecode), ethers.keccak256(ethers.toUtf8Bytes("LambdaClass"))));
 
-    await announced('Clean rocksdb', clean('db'));
-    await announced('Clean backups', clean('backups'));
     // await announced('Running server genesis setup', server.genesisFromSources());
     await announced('Deploying Base Layer contracts', deployBaseLayerContracts(wallet));
     // await announced('Initializing validator', contract.initializeValidator(governorPrivateKeyArgs));
