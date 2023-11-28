@@ -1,15 +1,12 @@
-.PHONY: setup compile deploy setup-node update-node run-node tx-output-local
+.PHONY: setup compile deploy setup-node update-node run-node tx-output-local init
 
 # Main Commands
 
 setup: setup-node
 	yarn install
 
-compile:
-	yarn hardhat compile
-
-init:
-	yarn hardhat deploy-zksync --script deploy/init.ts
+init: 
+	./scripts/init.sh
 
 clean: clean-hardhat clean-node-modules clean-era-test-node
 
@@ -45,6 +42,16 @@ clean-era-test-node:
 	rm -rf era-test-node
 
 # L3 Command
+
+compile:
+	yarn hardhat compile
+
+deploy-layer-base-contracts:
+	yarn hardhat deploy-zksync --script deploy/base-layer-contracts.ts
+
+run-l3:
+	cd core/bin/zksync_server && \
+	cargo +nightly run --bin zksync_server --release
 
 fund:
 	yarn hardhat deploy-zksync --script deploy/init-rich-accounts.ts
