@@ -7,9 +7,6 @@ import { CREATE2_PREFIX, initialProxyDiamondCut, oldInitialProxyDiamondCut, spaw
 import { Contract, ContractFactory, Provider, Wallet, utils } from 'zksync-web3';
 import { DeploymentType } from 'zksync-web3/build/src/types';
 
-import * as db from './database';
-import * as dbutils from './database-utils';
-
 dotenv.config();
 
 const entry = chalk.bold.yellow;
