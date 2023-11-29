@@ -5,7 +5,7 @@
 setup: setup-node
 	yarn install
 
-init: 
+init: deploy-base-layer-contracts
 	./scripts/init.sh
 
 clean: clean-hardhat clean-node-modules clean-era-test-node
@@ -46,7 +46,7 @@ clean-era-test-node:
 compile:
 	yarn hardhat compile
 
-deploy-layer-base-contracts:
+deploy-base-layer-contracts:
 	yarn hardhat deploy-zksync --script deploy/base-layer-contracts.ts
 
 run-l3:
