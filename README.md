@@ -12,11 +12,8 @@ Proof of Concept of what a zkSync Era's L3 would look like
     ```
     make run-node
     ```
-3. Compile the contracts
     ```
-    make compile
-    ```
-4. Initialize
+3. Initialize
     ```
     make init
     ```
