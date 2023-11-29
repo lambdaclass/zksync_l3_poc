@@ -260,17 +260,9 @@ impl EthInterface for QueryClient {
         B: Into<Option<BlockId>> + Send,
         P: Tokenize + Send,
     {
-        use zksync_web3_rs::zks_provider::ZKSProvider;
-
-        let provider =
-            zksync_web3_rs::providers::Provider::try_from("http://localhost:8011".to_owned())
-                .unwrap();
-        let mut call_request = zksync_web3_rs::zks_wallet::CallRequest::new(contract_address, func);
-        call_request.function_parameters(params);
-        let res = ZKSProvider::call(&provider, &call_request, None).await.unwrap();
         let latency = LATENCIES.direct[&Method::CallContractFunction].start();
-        // let contract = Contract::new(self.web3.eth(), contract_address, contract_abi);
-        // let res = contract.query(func, params, from, options, block).await?;
+        let contract = Contract::new(self.web3.eth(), contract_address, contract_abi);
+        let res = contract.query(func, params, from, options, block).await?;
         latency.observe();
         Ok(res)
     }
