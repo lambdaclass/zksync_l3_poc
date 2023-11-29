@@ -17,3 +17,10 @@ Proof of Concept of what a zkSync Era's L3 would look like
     ```
     make init
     ```
+
+## Running your L3
+
+1. Run the node
+    ```
+    make run-l3
+    ```
