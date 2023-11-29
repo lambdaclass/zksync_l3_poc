@@ -23,6 +23,3 @@ echo "Successfully removed db/"
 echo "> Clean backups"
 rm -rf backups
 echo "Successfully removed backups/"
-
-echo "> Deploying Base Layer contracts"
-make deploy-base-layer-contracts
