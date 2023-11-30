@@ -2,7 +2,7 @@
 
 Proof of Concept of what a zkSync Era's L3 would look like
 
-## Running the project
+## Running your base layer
 
 1. Setup the project
     ```
@@ -12,11 +12,15 @@ Proof of Concept of what a zkSync Era's L3 would look like
     ```
     make run-node
     ```
-3. Compile the contracts
     ```
-    make compile
+3. Initialize
     ```
-4. Deploy the contracts
+    make init
     ```
-    make deploy
+
+## Running your L3
+
+1. Run the node
+    ```
+    make run-l3
     ```

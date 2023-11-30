@@ -16,6 +16,8 @@ artifacts-zk
 cache-zk
 era_test_node.log
 .env
+era-test-node/
+*/**/target/
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json

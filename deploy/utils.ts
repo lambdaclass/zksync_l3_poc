@@ -1,194 +1,227 @@
-import { Provider, Wallet } from "zksync-web3";
+import { ethers } from "ethers";
 import * as hre from "hardhat";
-import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
-import dotenv from "dotenv";
-import { Interface, formatEther } from "ethers/lib/utils";
-import { BigNumberish, ethers } from "ethers";
 import fs from "fs";
+import { checkResultErrors, EventFragment, Fragment, FunctionFragment, Indexed, Interface, JsonFragment, LogDescription, ParamType, Result } from "@ethersproject/abi";
+import { Address } from "zksync-web3/build/src/types";
+import { Contract } from "zksync-web3";
+import { hashBytecode } from "./dev-utils";
+import { exec as _exec, spawn as _spawn } from 'child_process';
 
-import "@matterlabs/hardhat-zksync-node/dist/type-extensions";
-import "@matterlabs/hardhat-zksync-verify/dist/src/type-extensions";
-import { ZkSyncArtifact } from "@matterlabs/hardhat-zksync-deploy/dist/types";
+export const CREATE2_PREFIX = ethers.utils.solidityKeccak256(["string"], ["zksyncCreate2"]);
 
-// Load env file
-dotenv.config();
+export function diamondCut(facetCuts: FacetCut[], initAddress: string, initCalldata: string): DiamondCut {
+    return {
+      facetCuts,
+      initAddress,
+      initCalldata,
+    };
+}
 
-export const getProvider = () => {
-  const rpcUrl = hre.network.config.url;
-  if (!rpcUrl) throw `⛔️ RPC URL wasn't found in "${hre.network.name}"! Please add a "url" field to the network config in hardhat.config.ts`;
+export async function  oldInitialProxyDiamondCut(ownerAddress: Address, adminFacet: Contract, gettersFacet: Contract, mailboxFacet: Contract, executorFacet: Contract, allowList: Contract, diamondInit: Contract) {
+    let facetCuts = [
+        {
+            facet: adminFacet.address,
+            selectors: getAllSelectors(adminFacet.interface),
+            action: 0,
+            isFreezable: false,
+        },
+        {
+            facet: gettersFacet.address,
+            selectors: getAllSelectors(gettersFacet.interface),
+            action: 0,
+            isFreezable: false,
+        },
+        {
+            facet: mailboxFacet.address,
+            selectors: getAllSelectors(mailboxFacet.interface),
+            action: 0,
+            isFreezable: true,
+        },
+        {
+            facet: executorFacet.address,
+            selectors: getAllSelectors(executorFacet.interface),
+            action: 0,
+            isFreezable: true,
+        },
+    ];
+    const diamondInitCalldata = diamondInit.interface.encodeFunctionData("initialize", [
+        {
+            verifier: "0xD9BeaC58741F9FEE8583A31E4f7BD93BE729eA9A",
+            governor: ownerAddress,
+            admin: ownerAddress,
+            genesisBatchHash: ethers.constants.HashZero,
+            genesisIndexRepeatedStorageChanges: ethers.constants.AddressZero,
+            genesisBatchCommitment: ethers.constants.HashZero,
+            allowList: allowList.address,
+            verifierParams: {
+                recursionNodeLevelVkHash: "0x1186ec268d49f1905f8d9c1e9d39fc33e98c74f91d91a21b8f7ef78bd09a8db8",
+                recursionLeafLevelVkHash: "0x101e08b00193e529145ee09823378ef51a3bc8966504064f1f6ba3f1ba863210",
+                recursionCircuitsSetVksHash: "0x142a364ef2073132eaf07aa7f3d8495065be5b92a2dc14fda09b4216affed9c0",
+            },
+            zkPorterIsAvailable: false,
+            l2BootloaderBytecodeHash: ethers.utils.hexlify(hashBytecode(readBlockBootloaderBytecode())),
+            l2DefaultAccountBytecodeHash: ethers.utils.hexlify(hashBytecode(readSystemContractsBytecode('DefaultAccount'))),
+            priorityTxMaxGasLimit: 80_000_000,
+        },
+    ]);
+    let initialDiamondCut = {
+        facetCuts: facetCuts,
+        initAddress: diamondInit.address,
+        initCalldata: diamondInitCalldata,
+    };
+    return initialDiamondCut;
+}
+
+export async function initialProxyDiamondCut(ownerAddress: Address, adminFacet: Contract, gettersFacet: Contract, mailboxFacet: Contract, executorFacet: Contract, allowList: Contract, diamondInit: Contract) {
+    const facetCuts: FacetCut[] = Object.values(await getCurrentFacetCutsForAdd(adminFacet, gettersFacet, mailboxFacet, executorFacet));
+    const genesisBatchHash = getHashFromEnv("CONTRACTS_GENESIS_ROOT"); // TODO: confusing name
+    const genesisIndexRepeatedStorageChanges = getNumberFromEnv("CONTRACTS_GENESIS_ROLLUP_LEAF_INDEX");
+    const genesisBatchCommitment = getHashFromEnv("CONTRACTS_GENESIS_BATCH_COMMITMENT");
+
+    const verifierParams =
+      process.env["CONTRACTS_PROVER_AT_GENESIS"] == "fri"
+        ? {
+            recursionNodeLevelVkHash: getHashFromEnv("CONTRACTS_FRI_RECURSION_NODE_LEVEL_VK_HASH"),
+            recursionLeafLevelVkHash: getHashFromEnv("CONTRACTS_FRI_RECURSION_LEAF_LEVEL_VK_HASH"),
+            recursionCircuitsSetVksHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+          }
+        : {
+            recursionNodeLevelVkHash: getHashFromEnv("CONTRACTS_RECURSION_NODE_LEVEL_VK_HASH"),
+            recursionLeafLevelVkHash: getHashFromEnv("CONTRACTS_RECURSION_LEAF_LEVEL_VK_HASH"),
+            recursionCircuitsSetVksHash: getHashFromEnv("CONTRACTS_RECURSION_CIRCUITS_SET_VKS_HASH"),
+          };
+    const priorityTxMaxGasLimit = getNumberFromEnv("CONTRACTS_PRIORITY_TX_MAX_GAS_LIMIT");
+    const initialProtocolVersion = getNumberFromEnv("CONTRACTS_INITIAL_PROTOCOL_VERSION");
+    const DiamondInit = new Interface(hre.artifacts.readArtifactSync("DiamondInit").abi);
+
+    const diamondInitCalldata = DiamondInit.encodeFunctionData("initialize", [
+      {
+        verifier: "0xD9BeaC58741F9FEE8583A31E4f7BD93BE729eA9A",
+        governor: ownerAddress,
+        admin: ownerAddress,
+        genesisBatchHash,
+        genesisIndexRepeatedStorageChanges,
+        genesisBatchCommitment,
+        allowList: allowList.address,
+        verifierParams,
+        zkPorterIsAvailable: false,
+        l2BootloaderBytecodeHash: ethers.utils.hexlify(hashBytecode(readBlockBootloaderBytecode())),
+        l2DefaultAccountBytecodeHash: ethers.utils.hexlify(hashBytecode(readSystemContractsBytecode('DefaultAccount'))),
+        priorityTxMaxGasLimit,
+        initialProtocolVersion,
+      },
+    ]);
+
+    // @ts-ignore
+    return diamondCut(facetCuts, diamondInit.address, diamondInitCalldata);
+}
+
+export enum Action {
+    Add = 0,
+    Replace = 1,
+    Remove = 2,
+}
+
+export interface FacetCut {
+    facet: string;
+    selectors: string[];
+    action: Action;
+    isFreezable: boolean;
+}
   
-  // Initialize zkSync Provider
-  const provider = new Provider(rpcUrl);
-
-  return provider;
-}
-
-export const getWallet = (privateKey?: string) => {
-  if (!privateKey) {
-    // Get wallet private key from .env file
-    if (!process.env.WALLET_PRIVATE_KEY) throw "⛔️ Wallet private key wasn't found in .env file!";
-  }
-
-  const provider = getProvider();
-  
-  // Initialize zkSync Wallet
-  const wallet = new Wallet(privateKey ?? process.env.WALLET_PRIVATE_KEY!, provider);
-
-  return wallet;
-}
-
-export const verifyEnoughBalance = async (wallet: Wallet, amount: BigNumberish) => {
-  // Check if the wallet has enough balance
-  const balance = await wallet.getBalance();
-  if (balance.lt(amount)) throw `⛔️ Wallet balance is too low! Required ${formatEther(amount)} ETH, but current ${wallet.address} balance is ${formatEther(balance)} ETH`;
-}
-
-/**
- * @param {string} data.contract The contract's path and name. E.g., "contracts/Greeter.sol:Greeter"
- */
-export const verifyContract = async (data: {
-  address: string,
-  contract: string,
-  constructorArguments: string,
-  bytecode: string
-}) => {
-  const verificationRequestId: number = await hre.run("verify:verify", {
-    ...data,
-    noCompile: true,
-  });
-  return verificationRequestId;
-}
-
-type DeployContractOptions = {
-  /**
-   * If true, the deployment process will not print any logs
-   */
-  silent?: boolean
-  /**
-   * If true, the contract will not be verified on Block Explorer
-   */
-  noVerify?: boolean
-  /**
-   * If specified, the contract will be deployed using this wallet
-   */ 
-  wallet?: Wallet
-}
-export const deployContract = async (deployer: Deployer, wallet: Wallet, contractArtifactName: string, constructorArguments?: any[], options?: DeployContractOptions) => {
-  const log = (message: string) => {
-    if (!options?.silent) console.log(message);
-  }
-
-  log(`\nStarting deployment process of "${contractArtifactName}"...`);
-  
-  const artifact = await deployer.loadArtifact(contractArtifactName).catch((error) => {
-    if (error?.message?.includes(`Artifact for contract "${contractArtifactName}" not found.`)) {
-      console.error(error.message);
-      throw `⛔️ Please make sure you have compiled your contracts or specified the correct contract name!`;
-    } else {
-      throw error;
-    }
-  });
-
-  // Estimate contract deployment fee
-  const deploymentFee = await deployer.estimateDeployFee(artifact, constructorArguments || []);
-  log(`Estimated deployment cost: ${formatEther(deploymentFee)} ETH`);
-
-  // Check if the wallet has enough balance
-  await verifyEnoughBalance(wallet, deploymentFee);
-
-  // Deploy the contract to zkSync
-  const contract = await deployer.deploy(artifact, constructorArguments);
-
-  const constructorArgs = contract.interface.encodeDeploy(constructorArguments);
-  const fullContractSource = `${artifact.sourceName}:${artifact.contractName}`;
-
-  // Display contract deployment info
-  log(`\n"${artifact.contractName}" was successfully deployed:`);
-  log(` - Contract address: ${contract.address}`);
-  log(` - Contract source: ${fullContractSource}`);
-  log(` - Encoded constructor arguments: ${constructorArgs}\n`);
-
-  if (!options?.noVerify && hre.network.config.verifyURL) {
-    log(`Requesting contract verification...`);
-    await verifyContract({
-      address: contract.address,
-      contract: fullContractSource,
-      constructorArguments: constructorArgs,
-      bytecode: artifact.bytecode,
-    });
-  }
-
-  return contract;
+export interface DiamondCut {
+    facetCuts: FacetCut[];
+    initAddress: string;
+    initCalldata: string;
 }
 
 export function getAllSelectors(contractInterface: Interface) {
-  return Object.keys(contractInterface.functions)
-    .filter((signature) => {
-      return signature !== "getName()";
-    })
-    .map((signature) => contractInterface.getSighash(signature));
+    return Object.keys(contractInterface.functions)
+        .filter((signature) => {
+            return signature !== "getName()";
+        })
+        .map((signature) => contractInterface.getSighash(signature));
 }
 
-export function hashL2Bytecode(bytecode: ethers.BytesLike): Uint8Array {
-  // For getting the consistent length we first convert the bytecode to UInt8Array
-  const bytecodeAsArray = ethers.utils.arrayify(bytecode);
+export function facetCut(address: string, contract: Interface, action: Action, isFreezable: boolean): FacetCut {
+    return {
+      facet: address,
+      selectors: getAllSelectors(contract),
+      action,
+      isFreezable,
+    };
+}
 
-  if (bytecodeAsArray.length % 32 != 0) {
-      throw new Error('The bytecode length in bytes must be divisible by 32');
-  }
+export async function getCurrentFacetCutsForAdd(
+    adminFacet: Contract,
+    gettersFacet: Contract,
+    mailboxFacet: Contract,
+    executorFacet: Contract
+) {
+    const adminFacetAddress = adminFacet.address;
+    const gettersFacetAddress = gettersFacet.address;
+    const mailboxFacetAddress = mailboxFacet.address;
+    const executorFacetAddress = executorFacet.address;
 
-  const hashStr = ethers.utils.sha256(bytecodeAsArray);
-  const hash = ethers.utils.arrayify(hashStr);
+    const facetsCuts = {};
+    // Some facets should always be available regardless of freezing: upgradability system, getters, etc.
+    // And for some facets there are should be possibility to freeze them by the governor if we found a bug inside.
+    if (adminFacetAddress) {
+      // Should be unfreezable. The function to unfreeze contract is located on the admin facet.
+      // That means if the admin facet will be freezable, the proxy can NEVER be unfrozen.
+      facetsCuts["AdminFacet"] = facetCut(adminFacetAddress, adminFacet.interface, Action.Add, false);
+    }
+    if (gettersFacetAddress) {
+      // Should be unfreezable. There are getters, that users can expect to be available.
+      facetsCuts["GettersFacet"] = facetCut(gettersFacetAddress, gettersFacet.interface, Action.Add, false);
+    }
+    // These contracts implement the logic without which we can get out of the freeze.
+    if (mailboxFacetAddress) {
+      facetsCuts["MailboxFacet"] = facetCut(mailboxFacetAddress, mailboxFacet.interface, Action.Add, true);
+    }
+    if (executorFacetAddress) {
+      facetsCuts["ExecutorFacet"] = facetCut(executorFacetAddress, executorFacet.interface, Action.Add, true);
+    }
+  
+    return facetsCuts;
+}
 
-  // Note that the length of the bytecode
-  // should be provided in 32-byte words.
-  const bytecodeLengthInWords = bytecodeAsArray.length / 32;
-  if (bytecodeLengthInWords % 2 == 0) {
-      throw new Error('Bytecode length in 32-byte words must be odd');
-  }
-  const bytecodeLength = ethers.utils.arrayify(bytecodeAsArray.length / 32);
-  if (bytecodeLength.length > 2) {
-      throw new Error('Bytecode length must be less than 2^16 bytes');
-  }
-  // The bytecode should always take the first 2 bytes of the bytecode hash,
-  // so we pad it from the left in case the length is smaller than 2 bytes.
-  const bytecodeLengthPadded = ethers.utils.zeroPad(bytecodeLength, 2);
+export function getHashFromEnv(envName: string): string {
+    const hash = process.env[envName]!;
+    if (!/^0x[a-fA-F0-9]{64}$/.test(hash)) {
+      throw new Error(`Incorrect hash format hash in ${envName} env: ${hash}`);
+    }
+    return hash;
+}
 
-  const codeHashVersion = new Uint8Array([1, 0]);
-  hash.set(codeHashVersion, 0);
-  hash.set(bytecodeLengthPadded, 2);
-
-  return hash;
+export function getNumberFromEnv(envName: string): string {
+    const number = process.env[envName]!;
+    if (!/^([1-9]\d*|0)$/.test(number)) {
+      throw new Error(`Incorrect number format number in ${envName} env: ${number}`);
+    }
+    return number;
 }
 
 export function readBlockBootloaderBytecode() {
-  return fs.readFileSync("era-test-node/src/deps/contracts/proved_block.yul.zbin");
+    return fs.readFileSync("era-test-node/src/deps/contracts/proved_block.yul.zbin");
 }
 
 export function readSystemContractsBytecode(fileName: string) {
-  const artifact = fs.readFileSync(
-      `era-test-node/src/deps/contracts/${fileName}.json`
-  );
-  return JSON.parse(artifact.toString()).bytecode;
+    const artifact = fs.readFileSync(
+        `era-test-node/src/deps/contracts/${fileName}.json`
+    );
+    return JSON.parse(artifact.toString()).bytecode;
 }
 
-export async function loadArtifact(deployer: Deployer, contractArtifactName: string): Promise<ZkSyncArtifact> {
-  return deployer.loadArtifact("L2ERC20Bridge").catch((error) => {
-      if (error?.message?.includes(`Artifact for contract "${"L2ERC20Bridge"}" not found.`)) {
-          console.error(error.message);
-          throw `⛔️ Please make sure you have compiled your contracts or specified the correct contract name!`;
-      } else {
-          throw error;
-      }
-  });
-}
-
-export async function readBytecode(deployer: Deployer, contractArtifactName: string): Promise<string> {
-  let artifact = await loadArtifact(deployer, contractArtifactName);
-  return artifact.bytecode
-}
-
-export async function readInterface(deployer: Deployer, contractArtifactName: string): Promise<Interface> {
-  let artifact = await loadArtifact(deployer, contractArtifactName);
-  return new ethers.utils.Interface(artifact.abi)
+// executes a command in a new shell
+// but pipes data to parent's stdout/stderr
+export function spawn(command: string) {
+    command = command.replace(/\n/g, ' ');
+    const child = _spawn(command, { stdio: 'inherit', shell: true });
+    return new Promise((resolve, reject) => {
+        child.on('error', reject);
+        child.on('close', (code) => {
+            code == 0 ? resolve(code) : reject(`Child process exited with code ${code}`);
+        });
+    });
 }
