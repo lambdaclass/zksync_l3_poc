@@ -1,5 +1,6 @@
 use anyhow::Context as _;
 use serde::de::DeserializeOwned;
+use dotenv::dotenv;
 
 mod alerts;
 mod api;
@@ -36,6 +37,7 @@ pub trait FromEnv: Sized {
 /// Convenience function that loads the structure from the environment variable given the prefix.
 /// Panics if the config cannot be loaded from the environment variables.
 pub(crate) fn envy_load<T: DeserializeOwned>(name: &str, prefix: &str) -> anyhow::Result<T> {
+    dotenv().ok();
     envy::prefixed(prefix)
         .from_env()
         .with_context(|| format!("Cannot load config <{name}>"))

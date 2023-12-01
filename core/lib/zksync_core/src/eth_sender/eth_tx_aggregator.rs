@@ -107,6 +107,7 @@ impl EthTxAggregator {
         eth_client: &E,
     ) -> Result<MulticallData, ETHSenderError> {
         let calldata = self.generate_calldata_for_multicall();
+        let aggregate_name = &self.functions.aggregate3.name;
         let aggregate3_result = eth_client
             .call_contract_function(
                 &self.functions.aggregate3.name,
@@ -115,6 +116,7 @@ impl EthTxAggregator {
                 Options::default(),
                 None,
                 self.l1_multicall3_address,
+                //Address::from([0x2e, 0xa9, 0x80, 0x0E, 0x4d, 0x8E, 0x77, 0x48, 0x44, 0x20, 0xFe, 0xcB, 0x4d, 0x81, 0x6D, 0xCf, 0x4A, 0xf8, 0x79, Ae),
                 self.functions.multicall_contract.clone(),
             )
             .await?;
