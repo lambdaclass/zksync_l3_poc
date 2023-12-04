@@ -27,17 +27,17 @@ pub enum ContractLanguage {
 const GOVERNANCE_CONTRACT_FILE: &str =
     "artifacts-zk/contracts/governance/IGovernance.sol/IGovernance.json";
 const ZKSYNC_CONTRACT_FILE: &str =
-    "contracts/ethereum/artifacts/cache/solpp-generated-contracts/zksync/interfaces/IZkSync.sol/IZkSync.json";
+    "artifacts-zk/contracts/zksync/interfaces/IZkSync.sol/IZkSync.json";
 const MULTICALL3_CONTRACT_FILE: &str =
-    "contracts/ethereum/artifacts/cache/solpp-generated-contracts/dev-contracts/Multicall3.sol/Multicall3.json";
+    "artifacts-zk/contracts/dev-contracts/Multicall3.sol/Multicall3.json";
 const VERIFIER_CONTRACT_FILE: &str =
-    "contracts/ethereum/artifacts/cache/solpp-generated-contracts/zksync/Verifier.sol/Verifier.json";
+    "artifacts-zk/contracts/zksync/Verifier.sol/Verifier.json";
 const IERC20_CONTRACT_FILE: &str =
-    "contracts/ethereum/artifacts/cache/solpp-generated-contracts/common/interfaces/IERC20.sol/IERC20.json";
+    "artifacts-zk/contracts/common/interfaces/IERC20.sol/IERC20.json";
 const FAIL_ON_RECEIVE_CONTRACT_FILE: &str =
-    "contracts/ethereum/artifacts/cache/solpp-generated-contracts/zksync/dev-contracts/FailOnReceive.sol/FailOnReceive.json";
+    "artifacts-zk/contracts/zksync/dev-contracts/FailOnReceive.sol/FailOnReceive.json";
 const L2_BRIDGE_CONTRACT_FILE: &str =
-    "contracts/zksync/artifacts-zk/cache-zk/solpp-generated-contracts/bridge/interfaces/IL2Bridge.sol/IL2Bridge.json";
+    "artifacts-zk/contracts/bridge/interfaces/IL2Bridge.sol/IL2Bridge.json";
 const LOADNEXT_CONTRACT_FILE: &str =
     "etc/contracts-test-data/artifacts-zk/contracts/loadnext/loadnext_contract.sol/LoadnextContract.json";
 const LOADNEXT_SIMPLE_CONTRACT_FILE: &str =
