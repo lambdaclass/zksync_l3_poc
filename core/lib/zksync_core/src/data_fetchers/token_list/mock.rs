@@ -72,7 +72,6 @@ fn get_genesis_token_list(network: &str) -> Vec<TokenGenesisListItem> {
         .unwrap_or_else(|_| panic!("ZKSYNC_HOME variable should be set"))
         .parse()
         .unwrap_or_else(|_| panic!("Failed to parse ZKSYNC_HOME env variable"));
-    file_path.push("etc");
     file_path.push("tokens");
     file_path.push("test");
     file_path.set_extension("json");
