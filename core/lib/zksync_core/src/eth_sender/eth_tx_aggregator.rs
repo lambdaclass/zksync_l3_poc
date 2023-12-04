@@ -107,6 +107,7 @@ impl EthTxAggregator {
         eth_client: &E,
     ) -> Result<MulticallData, ETHSenderError> {
         let calldata = self.generate_calldata_for_multicall();
+        let aggregate_name = &self.functions.aggregate3.name;
         let aggregate3_result = eth_client
             .call_contract_function(
                 &self.functions.aggregate3.name,

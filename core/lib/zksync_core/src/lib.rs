@@ -143,7 +143,7 @@ pub async fn genesis_init(
             let eth_client = QueryClient::new(eth_client_url)?;
             let vk_hash: zksync_types::H256 = eth_client
                 .call_contract_function(
-                    "verificationKeyHash()",
+                    "verificationKeyHash",
                     (),
                     None,
                     Default::default(),
