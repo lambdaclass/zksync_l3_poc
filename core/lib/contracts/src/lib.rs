@@ -202,7 +202,7 @@ impl SystemContractsRepo {
         let zksync_home = std::env::var("ZKSYNC_HOME").unwrap_or_else(|_| ".".into());
         let zksync_home = PathBuf::from(zksync_home);
         SystemContractsRepo {
-            root: zksync_home.join("etc/system-contracts"),
+            root: zksync_home.join("era-test-node/src/deps/contracts"),
         }
     }
     pub fn read_sys_contract_bytecode(
@@ -212,23 +212,27 @@ impl SystemContractsRepo {
         lang: ContractLanguage,
     ) -> Vec<u8> {
         match lang {
-            ContractLanguage::Sol => read_bytecode_from_path(self.root.join(format!(
-                "artifacts-zk/cache-zk/solpp-generated-contracts/{0}{1}.sol/{1}.json",
-                directory, name
-            ))),
-            ContractLanguage::Yul => read_zbin_bytecode_from_path(self.root.join(format!(
-                "contracts/{0}artifacts/{1}.yul/{1}.yul.zbin",
-                directory, name
-            ))),
+            ContractLanguage::Sol => read_bytecode_from_path(self.root.join(format!("{name}.json")).into()),
+            ContractLanguage::Yul => read_zbin_bytecode_from_path(self.root.join(format!("{name}.yul.zbin")).into()),
+            // ContractLanguage::Sol => read_bytecode_from_path(self.root.join(format!(
+                // "artifacts-zk/cache-zk/solpp-generated-contracts/{0}{1}.sol/{1}.json",
+                // directory, name
+            // ))),
+            // ContractLanguage::Yul => read_zbin_bytecode_from_path(self.root.join(format!(
+            //     "contracts/{0}artifacts/{1}.yul/{1}.yul.zbin",
+            //     directory, name
+            // ))),
         }
     }
 }
 
 pub fn read_bootloader_code(bootloader_type: &str) -> Vec<u8> {
-    read_zbin_bytecode(format!(
-        "etc/system-contracts/bootloader/build/artifacts/{}.yul/{}.yul.zbin",
-        bootloader_type, bootloader_type
-    ))
+    // Note: This is a workaround to work with the era-test-node
+    read_zbin_bytecode(format!("era-test-node/src/deps/contracts/{bootloader_type}.yul.zbin"))
+    // read_zbin_bytecode(format!(
+    //     "etc/system-contracts/bootloader/build/artifacts/{}.yul/{}.yul.zbin",
+    //     bootloader_type, bootloader_type
+    // ))
 }
 
 pub fn read_proved_batch_bootloader_bytecode() -> Vec<u8> {
@@ -347,23 +351,23 @@ impl BaseSystemContracts {
 
     pub fn playground_pre_virtual_blocks() -> Self {
         let bootloader_bytecode = read_zbin_bytecode(
-            "etc/multivm_bootloaders/vm_1_3_2/playground_block.yul/playground_block.yul.zbin",
+            "era-test-node/src/deps/contracts/playground_block.yul.zbin",
         );
         BaseSystemContracts::load_with_bootloader(bootloader_bytecode)
     }
 
     pub fn playground_post_virtual_blocks() -> Self {
-        let bootloader_bytecode = read_zbin_bytecode("etc/multivm_bootloaders/vm_virtual_blocks/playground_batch.yul/playground_batch.yul.zbin");
+        let bootloader_bytecode = read_zbin_bytecode("era-test-node/src/deps/contracts/playground_batch.yul.zbin");
         BaseSystemContracts::load_with_bootloader(bootloader_bytecode)
     }
 
     pub fn playground_post_virtual_blocks_finish_upgrade_fix() -> Self {
-        let bootloader_bytecode = read_zbin_bytecode("etc/multivm_bootloaders/vm_virtual_blocks_finish_upgrade_fix/playground_batch.yul/playground_batch.yul.zbin");
+        let bootloader_bytecode = read_zbin_bytecode("era-test-node/src/deps/contracts/playground_batch.yul.zbin");
         BaseSystemContracts::load_with_bootloader(bootloader_bytecode)
     }
 
     pub fn playground_post_boojum() -> Self {
-        let bootloader_bytecode = read_zbin_bytecode("etc/multivm_bootloaders/vm_boojum_integration/playground_batch.yul/playground_batch.yul.zbin");
+        let bootloader_bytecode = read_zbin_bytecode("era-test-node/src/deps/contracts/playground_batch.yul.zbin");
         BaseSystemContracts::load_with_bootloader(bootloader_bytecode)
     }
 
@@ -375,28 +379,28 @@ impl BaseSystemContracts {
 
     pub fn estimate_gas_pre_virtual_blocks() -> Self {
         let bootloader_bytecode = read_zbin_bytecode(
-            "etc/multivm_bootloaders/vm_1_3_2/fee_estimate.yul/fee_estimate.yul.zbin",
+            "era-test-node/src/deps/contracts/fee_estimate.yul.zbin",
         );
         BaseSystemContracts::load_with_bootloader(bootloader_bytecode)
     }
 
     pub fn estimate_gas_post_virtual_blocks() -> Self {
         let bootloader_bytecode = read_zbin_bytecode(
-            "etc/multivm_bootloaders/vm_virtual_blocks/fee_estimate.yul/fee_estimate.yul.zbin",
+            "era-test-node/src/deps/contracts/fee_estimate.yul.zbin",
         );
         BaseSystemContracts::load_with_bootloader(bootloader_bytecode)
     }
 
     pub fn estimate_gas_post_virtual_blocks_finish_upgrade_fix() -> Self {
         let bootloader_bytecode = read_zbin_bytecode(
-            "etc/multivm_bootloaders/vm_virtual_blocks_finish_upgrade_fix/fee_estimate.yul/fee_estimate.yul.zbin",
+            "era-test-node/src/deps/contracts/fee_estimate.yul.zbin",
         );
         BaseSystemContracts::load_with_bootloader(bootloader_bytecode)
     }
 
     pub fn estimate_gas_post_boojum() -> Self {
         let bootloader_bytecode = read_zbin_bytecode(
-            "etc/multivm_bootloaders/vm_boojum_integration/fee_estimate.yul/fee_estimate.yul.zbin",
+            "era-test-node/src/deps/contracts/fee_estimate.yul.zbin",
         );
         BaseSystemContracts::load_with_bootloader(bootloader_bytecode)
     }
