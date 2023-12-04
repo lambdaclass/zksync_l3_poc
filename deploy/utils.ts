@@ -46,7 +46,7 @@ export async function  oldInitialProxyDiamondCut(ownerAddress: Address, adminFac
     ];
     const diamondInitCalldata = diamondInit.interface.encodeFunctionData("initialize", [
         {
-            verifier: "0xD9BeaC58741F9FEE8583A31E4f7BD93BE729eA9A",
+            verifier: process.env.CONTRACTS_VERIFIER_ADDR!,
             governor: ownerAddress,
             admin: ownerAddress,
             genesisBatchHash: ethers.constants.HashZero,
@@ -96,7 +96,7 @@ export async function initialProxyDiamondCut(ownerAddress: Address, adminFacet: 
 
     const diamondInitCalldata = DiamondInit.encodeFunctionData("initialize", [
       {
-        verifier: "0xD9BeaC58741F9FEE8583A31E4f7BD93BE729eA9A",
+        verifier: process.env.CONTRACTS_VERIFIER_ADDR!,
         governor: ownerAddress,
         admin: ownerAddress,
         genesisBatchHash,
